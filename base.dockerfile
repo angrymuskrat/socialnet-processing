@@ -20,13 +20,13 @@ RUN /opt/conda/bin/conda install pytorch==1.12 torchvision==0.13 cudatoolkit=10.
 RUN /opt/conda/bin/conda install -c conda-forge "scikit-learn>=0.24"
 
 RUN /opt/conda/bin/pip install --upgrade pip
-RUN /opt/conda/bin/pip install tensorflow
-RUN /opt/conda/bin/pip install transformers
+RUN /opt/conda/bin/pip install "tensorflow==2.12.0"
+RUN /opt/conda/bin/pip install "transformers==4.29.2"
 
 RUN /opt/conda/bin/pip install setuptools wheel
 RUN /opt/conda/bin/pip install --default-timeout=240 spacy[cuda102]
 
-RUN /opt/conda/bin/pip install bertopic
+RUN /opt/conda/bin/pip install "bertopic==0.15.0"
 
 RUN /opt/conda/bin/conda install ipykernel
 
@@ -51,12 +51,12 @@ RUN mkdir /home/jovyan/notebooks && chmod 777 /home/jovyan/notebooks
 #RUN /opt/conda/bin/conda install -n rapids-0.18 -c plotly plotly=4.14.3
 
 #RUN /opt/conda/bin/pip install natasha
-RUN /opt/conda/bin/conda install -c conda-forge gensim
-RUN /opt/conda/bin/pip install pytorch-lightning
-RUN /opt/conda/bin/pip install clean-text fasttext
+RUN /opt/conda/bin/conda install -c conda-forge "gensim==3.8.3"
+RUN /opt/conda/bin/pip install "pytorch-lightning==2.0.2"
+RUN /opt/conda/bin/pip install "clean-text==0.6.0" "fasttext==0.9.2"
 # RUN /opt/conda/bin/pip install keybert
 # RUN python -m spacy download ru_core_news_sm
 # RUN /opt/conda/bin/pip install pymystem3
 # RUN /opt/conda/bin/pip install torch-lr-finder
 # RUN python -m spacy download en_core_web_lg
-RUN /opt/conda/bin/pip install geopandas
+RUN /opt/conda/bin/pip install "geopandas==0.13.0"
