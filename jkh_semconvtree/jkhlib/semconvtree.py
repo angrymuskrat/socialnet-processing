@@ -77,9 +77,11 @@ class TimePeriodRange:
         elif self.mode == 'busday':
             busdays = np.is_busday(datetimes.astype('datetime64[D]'))
             idxs = busdays
-        else:
+        elif self.mode == 'test':
             seconds = datetimes.astype(int) % 2
             idxs = seconds
+        else:
+            raise  ValueError(f'wrong value for mode, supported only these modes: {", ".join(TimePeriodRange.modes)}')
         return idxs
 
 
@@ -141,7 +143,7 @@ class SemConvTree:
             self.eps = 0.0
         
     def transform(self, posts, topics, geogrid, tpr, return_active_zone_posts=False, 
-                  active_zone_threshold=None, post_weight_threshold=1.0):
+                  active_zone_threshold=None, post_weight_threshold=1.0, real_weight_threshold=10.0):
         # posts: array[n, (lat, lon, timestamp)]
         # topics: array[n, n_topics] of dtype float
         # geogrid: Geogrid
@@ -170,7 +172,7 @@ class SemConvTree:
         
         ########### нужно, чтобы посты с огромными весами за счет маленького значения agg_topics не мешали
         self.weighted_topics = np.where(
-            self.weighted_topics < 10,
+            self.weighted_topics < real_weight_threshold,
             self.weighted_topics,
             0,
         )
