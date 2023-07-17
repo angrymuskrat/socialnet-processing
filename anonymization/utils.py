@@ -1,71 +1,12 @@
-import sklearn
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import normalize
-from sklearn.metrics.pairwise import cosine_similarity
-from sklearn import preprocessing
-from sklearn.metrics import f1_score
-from sklearn.metrics import balanced_accuracy_score, confusion_matrix
-from sklearn.metrics import precision_recall_fscore_support as score
+import re
 
 import nltk
-from nltk.corpus import stopwords
-from nltk.corpus import wordnet
+from cleantext import clean
+
 nltk.download('stopwords')
 nltk.download('wordnet')
 
 eng_stopwords = stopwords.words('english')
-
-from nltk.stem import WordNetLemmatizer
-
-from gensim.models import fasttext as ft, Word2Vec
-from gensim.test.utils import datapath
-
-import fasttext
-
-from cleantext import clean
-
-from transformers import (
-    AutoModel, 
-    AutoModelForMaskedLM,
-    AutoModelForSeq2SeqLM,
-    AutoModelForTokenClassification,
-    AutoModelForSequenceClassification,
-    AutoTokenizer,
-)
-from transformers import pipeline
-
-from sentence_transformers import SentenceTransformer
-from sentence_transformers.evaluation import BinaryClassificationEvaluator
-
-import torch
-from torch import nn
-from torch.nn import functional as F
-from torch.utils.data import DataLoader, Dataset, random_split
-
-import tensorflow as tf
-from tensorflow.keras.models import Model
-from tensorflow.keras.layers import Input, Dense, Flatten, Dropout, Embedding
-from tensorflow.keras.layers import Conv1D, MaxPooling1D
-from tensorflow.keras.layers import Concatenate
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.preprocessing.text import one_hot
-from tensorflow.keras.callbacks import ModelCheckpoint 
-
-import pytorch_lightning as pl
-from pytorch_lightning import Trainer
-
-import pandas as pd
-import numpy as np
-from scipy import sparse
-from tqdm.notebook import tqdm
-
-import re
-from itertools import chain, islice
-import logging
-import os
-from collections import Counter
-import time
 
 CORES = 10
 
