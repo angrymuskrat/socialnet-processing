@@ -15,7 +15,7 @@ TRAIN_DOC_COUNT = 10000
 TEST_DOC_COUNT = 1000
 AUTHOR_COUNT = 100
 
-
+# убираю различные эмодзи
 def remove_emojis(data):
     emoj = re.compile("["
         u"\U0001F600-\U0001F64F"  # emoticons
@@ -39,23 +39,32 @@ def remove_emojis(data):
                       "]+", re.UNICODE)
     return re.sub(emoj, '', data)
 
+# убираю упоминания в инсте
 def remove_mentions(data):
     return re.sub(r'(@[\w_]+)|(\[.*\](,? )?)', '', data)
 
+# хэштеги часто пишут подряд без пробелов
 def split_hashtags(data):
     return re.sub(r'#', ' #', data)
 
+# просто убираю лишние символы ()_
 def remove_extra_symbols(data):
     return re.sub(r'[\(\)_]+', '', data)
 
+# в вк есть html теги, их тоже надо убрать
 def remove_html_tags(data):
     return re.sub(r'<.*?>', ' ', data)
 
+# в текстах из вк часто присуствует expand text, скорее всего, 
+# просто не удалось спарсить остальной текст
 def remove_expand(data):
     return re.sub(r'expand text…', '', data)
 
+# здесь все функции для чистки данных собраны в одном месте, 
+# чтобы можно было применять к тексту, подходит для метода pd.DataFrame.apply
 def apply_clean(doc, vk_preprocess=False):
     doc = remove_html_tags(doc)
+    # clean из библиотеки cleantext, тоже сильно помогает
     doc = clean(doc,
                 fix_unicode=True,               # fix various unicode errors
                 to_ascii=False,                  # transliterate to closest ASCII representation
@@ -84,7 +93,7 @@ def apply_clean(doc, vk_preprocess=False):
     
     return doc
 
-
+# разделение текста и хэштегов друг от друга
 def get_text_and_hashtags(row, text_col='text'):
     text = row[text_col]
     if len(text) == 0:
