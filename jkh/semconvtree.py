@@ -2,13 +2,16 @@ import numpy as np
 
 
 class Geogrid:
-    
+    """Геокоординатная сетка"""
     def __init__(self, lat_min, lat_max, lon_min, lon_max, n_range=100, eps=1e-10):
+        # добавляю eps потому что возникали проблемы с граничными случаями
         self.lat_range = np.linspace(lat_min-eps, lat_max+eps, n_range+1)
         self.lon_range = np.linspace(lon_min-eps, lon_max+eps, n_range+1)
+
         self.n_lat = n_range
         self.n_lon = n_range
     
+    @staticmethod
     def from_coords(lats, lons, n_range=100):
         return Geogrid(min(lats),
                        max(lats),
@@ -30,25 +33,32 @@ class Geogrid:
     
 
 class TimePeriodRange:
-    
+    """Временная сетка"""
     modes = ['default', 'month', 'year_month', 'year_3month', 'month_busday', 'busday', 'test']
     
     def __init__(self, mode='default'):
         if mode not in TimePeriodRange.modes:
             raise ValueError(f'wrong value for mode, supported only these modes: {", ".join(TimePeriodRange.modes)}')
         self.mode = mode
+        # значение зависит от месяца, дня недели (рабочий/не рабочий) и часа в сутках
         if mode == 'default':
             self.n_range = 576
+        # значение зависит только от месяца
         if mode == 'month':
             self.n_range = 12
+        # один период - это один месяц одного года, учитываются только последние 24 года
         if mode == 'year_month':
             self.n_range = 24*12
+        # один период - это 3 месяца одного года, учитываются только последние 24 года
         if mode == 'year_3month':
             self.n_range = 24*4
+        # значение зависит только от месяца и дня недели (рабочий/не рабочий)
         if mode == 'month_busday':
             self.n_range = 24
+        # значение зависит только от дня недели (рабочий/не рабочий)
         if mode == 'busday':
             self.n_range = 2
+        # тест работы
         if mode == 'test':
             self.n_range = 2
     
@@ -86,7 +96,7 @@ class TimePeriodRange:
 
 
 class GeoTimeAggregator:
-    
+    """Агрегатор (усреднятель) топиков постов по координатам и времени"""
     def __init__(self, geogrid, time_period_range):
         self.geogrid = geogrid
         self.tpr = time_period_range
@@ -122,7 +132,7 @@ class GeoTimeAggregator:
     
 
 class SemConvTree:
-    
+    """Метод вычисления весов сообщений из статьи"""
     def __init__(self, alpha, beta, eps='topic'):
         # alpha: [0, 1]
         # beta: array[n_topics, [0, 1]]
@@ -162,12 +172,16 @@ class SemConvTree:
         
         idxs_ = (self.lat_idxs, self.lon_idxs, self.time_idxs)
         
+        # np.broadcast_arrays повторяет self.beta по дополнительному измерению, чтобы она была одинакового размера с topics,
+        # но при этом не происходит копирования значений, новые значения ссылаются на старые
         _, beta_ = np.broadcast_arrays(topics, self.beta[np.newaxis, ...])
         
+        # здесь все матрицы решейпятся в линейный вид и перемножаются, используются только нампаевские функции
         self.weighted_topics = np.exp(1 / (self.alpha + self.eps)\
                                  * (topics.reshape(-1) / (agg_topics[idxs_] + self.eps).reshape(-1) + self.eps)\
                                       ** beta_.reshape(-1)\
                                  * (topics.reshape(-1) - agg_topics[idxs_].reshape(-1)))
+        # решейп в изначальный формат и усреднение
         self.weighted_topics = self.weighted_topics.reshape(topics.shape).mean(axis=-1)
         
         ########### нужно, чтобы посты с огромными весами за счет маленького значения agg_topics не мешали
@@ -185,6 +199,7 @@ class SemConvTree:
         not_zero = agg_counts != 0
         self.norm_sem_agg_topics[not_zero] /= agg_counts[not_zero]
         
+        # нахождение постов, которые находятся в активной зоне (вес сообщений в зонах сравнивается с порогом)
         if return_active_zone_posts and active_zone_threshold is not None:
             idxs = np.argwhere(self.sem_agg_topics > active_zone_threshold)
             active_zone_posts = {tuple(idx_tpl): [] for idx_tpl in idxs}
