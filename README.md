@@ -29,6 +29,7 @@
 - *reading_xml_purchases.ipynb* - парсинг xml файлов о заказах в csv
 - *reading_xml_zakupki.ipynb* - парсинг xml файлов о закупках в csv
 - *visualize_posts_and_zakupki.ipynb* - визуализация заказов и закупок и постов на интерактивной карте
+- закупки (zakupki) и заказы (purchases) отличаются скорей всего тем, что первые - это что-то свершившееся на момент регистрации, а вторые ещё не свершились 
 
 4. **jkh_local**
 - *extract_address_from_vk.ipynb* - вытаскиваю адреса ЖКХ компаний с сайта mingkh.ru и связываю их с группами по адресу
