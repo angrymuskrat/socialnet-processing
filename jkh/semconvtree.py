@@ -21,12 +21,14 @@ class Geogrid:
                       )
     
     def get_grid_idxs(self, lats, lons):
+        # вычисление индексов
         if np.min(lats) < self.lat_range[0] or \
            np.max(lats) > self.lat_range[-1] or \
            np.min(lons) < self.lon_range[0] or \
            np.max(lons) > self.lon_range[-1]:
             raise ValueError('lat or lon out of lat or lon range')
         
+        # поиск подходящего индекса через бинарный поиск
         lat_poses = np.searchsorted(self.lat_range, lats, side='left') - 1
         lon_poses = np.searchsorted(self.lon_range, lons, side='left') - 1
         return lat_poses, lon_poses
@@ -63,6 +65,7 @@ class TimePeriodRange:
             self.n_range = 2
     
     def get_range_idxs(self, timestamps):
+        # вычисление индексов
         datetimes = np.array(timestamps, dtype='datetime64[s]')
         if self.mode == 'default':
             hours = datetimes.astype('datetime64[h]').astype(int) % 24
@@ -104,21 +107,34 @@ class GeoTimeAggregator:
     def build(self, posts, topics):
         # posts: array[n, (lat, lon, timestamp)]
         # topics: array[n, n_topics] of dtype float
+
+        # на входе ожидаются posts - массив из n кортежей, содержащих широту, долготу и время публикации для постов, и
+        # topics - массив из n векторов, каждое значение которого содержит вероятность того, что пост относится 
+        # к соотвествующему топику
+        # на выходе усредненные значения для всех клеток
         
+        # перевод из координат в индексы клеток
         lat_idxs, lon_idxs = self.geogrid.get_grid_idxs(posts[:, 0], posts[:, 1])
+        # перевод из timestamp в индекс клеток
         time_idxs = self.tpr.get_range_idxs(posts[:, 2])
         
+        # инициализация
         self.agg_topics = np.zeros((self.geogrid.n_lat, self.geogrid.n_lon, self.tpr.n_range, topics.shape[1]))
         self.agg_counts = np.zeros((self.geogrid.n_lat, self.geogrid.n_lon, self.tpr.n_range))
         
+        # глобальное среднее значение по топикам
         gen_agg_topics = topics.sum(axis=0) / topics.shape[0]
         
+        # по индексам (lat_idxs, lon_idxs, time_idxs) в agg_topics добавляются значения topics
         np.add.at(self.agg_topics, (lat_idxs, lon_idxs, time_idxs), topics)
+        # то же самое, но только добавляется 1 для подсчета количества постов, попавших в каждую клетку
         np.add.at(self.agg_counts, (lat_idxs, lon_idxs, time_idxs), 1)
         
+        # делим ненулевые значения agg_topics на agg_counts
         not_zero = self.agg_counts != 0
         self.agg_topics[not_zero] /= self.agg_counts[..., np.newaxis][not_zero]
         
+        # а если agg_topics < min_topic_weight, то вставляю глобальное среднее значение
         min_topic_weight = 1 / topics.shape[1]
         self.agg_topics = np.where(self.agg_topics < min_topic_weight, gen_agg_topics, self.agg_topics)
         
@@ -139,6 +155,7 @@ class SemConvTree:
         
         beta = np.asarray(beta)
         
+        # по статье alpha должна быть в диапазоне от 0 до 1
         if np.clip(alpha, 0, 1) != alpha:
             raise ValueError('alpha should be in range [0, 1]')
 #         if (beta < 0).any():
@@ -147,6 +164,7 @@ class SemConvTree:
         self.alpha = alpha
         self.beta = beta
         
+        # для стабильности вычислений
         if eps == 'topic':
             self.eps = 0.1 / beta.shape[0]
         else:
@@ -158,6 +176,12 @@ class SemConvTree:
         # topics: array[n, n_topics] of dtype float
         # geogrid: Geogrid
         # tpr: TimePeriodRange
+
+        # на входе ожидаются posts - массив из n кортежей, содержащих широту, долготу и время публикации для постов, и
+        # topics - массив из n векторов, каждое значение которого содержит вероятность того, что пост относится 
+        # к соотвествующему топику, geogrid, tpr - это объекты классов Geogrid и TimePeriodRange соотвественно
+
+        # на выходе возвращаются усредненные по клеткам значения весов постов
         
         if topics.shape[1] != self.beta.shape[0]:
             raise ValueError(f"topics last dimension doesn't equal beta dimension, {topics.shape[1]} != {self.beta.shape[0]}")
@@ -222,3 +246,34 @@ class SemConvTree:
     
     def get_posts_idxs(self):
         return self.lat_idxs, self.lon_idxs, self.time_idxs
+    
+
+# пример кода
+# предполагается, что есть некоторый датафрейм с полями lat - широта, lon - долгота, date - время в формате timestamp
+
+# alpha = 0.1
+# n_topics = 10
+# beta = np.array([1.0]*n_topics)
+# n_range = 10
+
+# probs = np.random.uniform(0.0, 1.0, (len(df), n_topics))
+
+# geogrid = Geogrid(
+#     df['lat'].min(),
+#     df['lat'].max(),
+#     df['lon'].min(),
+#     df['lon'].max(),
+#     n_range=n_range,
+# )
+
+# tpr = TimePeriodRange(mode=tpr_mode)
+# sct = SemConvTree(alpha, beta)
+
+# _ = sct.transform(
+#     df[['lat', 'lon', 'date']].values,
+#     probs, geogrid, tpr,
+#     return_active_zone_posts=False
+# )
+
+# так можно достать веса всех постов (только после выполнения sct.transform)
+# all_posts_weights = sct.weighted_topics
